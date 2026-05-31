@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>El Delfín Chileno — Juego de Joseph</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap');
+:root{--ocean-deep:#052e4a;--ocean-mid:#0d5c8a;--ocean-light:#1a8fc4;--gold:#f5c842;--green-ok:#27ae60;--green-bg:#e8f8f0;--red-err:#c0392b;--red-bg:#fdecea;--purple:#6c47d4;--text:#052e4a;--radius:16px;--radius-sm:10px;}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;touch-action:manipulation;}
+html,body{height:100%;overflow:hidden;background:var(--ocean-deep);}
+body{font-family:'Nunito',sans-serif;color:var(--text);display:flex;justify-content:center;align-items:stretch;}
+#root{width:100%;max-width:430px;height:100%;display:flex;flex-direction:column;overflow:hidden;position:relative;}
+.ocean-scene{position:absolute;inset:0;pointer-events:none;z-index:0;background:linear-gradient(180deg,#0a3d6b 0%,#0d5c8a 40%,#1a8fc4 100%);overflow:hidden;}
+.bubble{position:absolute;border-radius:50%;background:rgba(255,255,255,0.07);animation:rise linear infinite;}
+@keyframes rise{0%{transform:translateY(0) scale(1);opacity:0.6;}100%{transform:translateY(-120vh) scale(1.3);opacity:0;}}
+.screen{position:absolute;inset:0;z-index:10;display:none;flex-direction:column;align-items:center;padding:16px;overflow-y:auto;gap:12px;padding-bottom:24px;}
+.screen.active{display:flex;}
+#menu{justify-content:center;}
+.menu-dolphin{font-size:90px;animation:bounce 1.8s ease-in-out infinite;text-shadow:0 8px 24px rgba(0,0,0,0.3);}
+@keyframes bounce{0%,100%{transform:translateY(0) rotate(-5deg);}50%{transform:translateY(-14px) rotate(5deg);}}
+.menu-title{font-size:28px;font-weight:900;color:#fff;text-align:center;line-height:1.2;text-shadow:0 2px 8px rgba(0,0,0,0.3);}
+.menu-subtitle{font-size:14px;color:rgba(255,255,255,0.75);text-align:center;margin-top:2px;}
+.menu-grid{display:flex;flex-direction:column;gap:10px;width:100%;margin-top:4px;}
+.mbtn{width:100%;padding:15px 20px;border:none;border-radius:var(--radius);font-family:'Nunito',sans-serif;font-size:16px;font-weight:800;cursor:pointer;display:flex;align-items:center;gap:12px;box-shadow:0 4px 0 rgba(0,0,0,0.25);transition:transform 0.12s,box-shadow 0.12s;}
+.mbtn:active{transform:translateY(3px);box-shadow:0 1px 0 rgba(0,0,0,0.25);}
+.mbtn-icon{font-size:26px;flex-shrink:0;}.mbtn-txt{text-align:left;}
+.mbtn-label{display:block;font-size:16px;}.mbtn-sub{display:block;font-size:11px;font-weight:600;opacity:0.75;margin-top:1px;}
+.mbtn.quiz{background:#f5c842;color:#2d1a00;}.mbtn.memory{background:#27ae60;color:#fff;}.mbtn.phrase{background:#6c47d4;color:#fff;}.mbtn.facts{background:#e8590c;color:#fff;}
+.topbar{display:flex;align-items:center;width:100%;gap:8px;}
+.back-btn{background:rgba(255,255,255,0.15);border:none;border-radius:10px;padding:8px 12px;color:#fff;font-size:13px;font-family:'Nunito',sans-serif;font-weight:700;cursor:pointer;flex-shrink:0;}
+.back-btn:active{background:rgba(255,255,255,0.25);}
+.score-pill{margin-left:auto;background:rgba(255,255,255,0.15);border-radius:20px;padding:6px 14px;font-size:14px;font-weight:800;color:#fff;}
+.score-pill span{color:var(--gold);}
+.prog-wrap{width:100%;background:rgba(255,255,255,0.15);border-radius:6px;height:8px;overflow:hidden;}
+.prog-fill{height:100%;border-radius:6px;background:var(--gold);transition:width 0.4s cubic-bezier(.4,0,.2,1);}
+.card{background:#fff;border-radius:var(--radius);padding:16px;width:100%;box-shadow:0 2px 12px rgba(0,0,0,0.12);position:relative;}
+.card-emoji{font-size:48px;text-align:center;display:block;margin-bottom:8px;}
+.card-label{font-size:11px;font-weight:700;color:var(--ocean-light);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;}
+.card-title{font-size:17px;font-weight:800;color:var(--text);line-height:1.4;}
+/* replay button on cards */
+.card-replay{position:absolute;top:12px;right:12px;background:#e8f4fd;border:none;border-radius:50%;width:34px;height:34px;font-size:17px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.15s;}
+.card-replay:active{background:#b5d4f4;}
+.card-replay.spinning{animation:spin-pulse 0.6s ease-in-out infinite alternate;}
+@keyframes spin-pulse{0%{transform:scale(1);}100%{transform:scale(1.25);}}
+/* reading indicator */
+.reading-bar{width:100%;height:3px;background:rgba(255,255,255,0.15);border-radius:3px;overflow:hidden;margin-top:-6px;}
+.reading-fill{height:100%;background:var(--gold);border-radius:3px;width:0%;transition:width 0s;}
+.reading-fill.active{transition:width 3s linear;}
+.opts{display:flex;flex-direction:column;gap:8px;width:100%;}
+.opt{width:100%;padding:13px 16px;border:2.5px solid #e0e8f0;border-radius:var(--radius-sm);background:#fff;font-family:'Nunito',sans-serif;font-size:15px;font-weight:700;color:var(--text);cursor:pointer;text-align:left;transition:all 0.12s;display:flex;align-items:center;gap:10px;}
+.opt:active{background:#f0f6ff;}
+.opt.correct{background:#e8f8f0;border-color:var(--green-ok);color:#1a5c35;}
+.opt.wrong{background:var(--red-bg);border-color:var(--red-err);color:var(--red-err);}
+.opt.reading{border-color:var(--gold);background:#fef9e7;}
+.opt-letter{font-size:12px;font-weight:900;background:#e8f0f8;border-radius:6px;padding:2px 7px;color:#4a7098;flex-shrink:0;}
+.opt.reading .opt-letter{background:var(--gold);color:#2d1a00;}
+.feedback{width:100%;padding:12px 16px;border-radius:var(--radius-sm);font-size:14px;font-weight:700;text-align:center;display:none;animation:popIn 0.2s ease;}
+@keyframes popIn{0%{transform:scale(0.9);opacity:0;}100%{transform:scale(1);opacity:1;}}
+.feedback.ok{background:var(--green-bg);color:#1a5c35;}.feedback.err{background:var(--red-bg);color:var(--red-err);}
+.next-btn{width:100%;padding:14px;border:none;border-radius:var(--radius-sm);background:var(--ocean-mid);color:#fff;font-family:'Nunito',sans-serif;font-size:16px;font-weight:800;cursor:pointer;display:none;transition:transform 0.1s;}
+.next-btn:active{transform:scale(0.97);}
+.result-wrap{background:#fff;border-radius:var(--radius);padding:24px 20px;width:100%;text-align:center;box-shadow:0 2px 12px rgba(0,0,0,0.12);}
+.result-big{font-size:72px;margin-bottom:4px;}.result-stars{font-size:32px;margin:6px 0;}
+.result-title{font-size:22px;font-weight:900;color:var(--text);margin-bottom:4px;}.result-sub{font-size:14px;color:#6a8090;}
+.result-score{font-size:36px;font-weight:900;color:var(--ocean-mid);margin:8px 0;}
+.action-row{display:flex;gap:8px;width:100%;}
+.action-btn{flex:1;padding:13px;border:none;border-radius:var(--radius-sm);font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer;transition:transform 0.1s;}
+.action-btn:active{transform:scale(0.96);}
+.action-btn.primary{background:var(--ocean-mid);color:#fff;}
+.action-btn.secondary{background:rgba(255,255,255,0.2);color:#fff;border:2px solid rgba(255,255,255,0.3);}
+/* MEMORY */
+.mem-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;width:100%;}
+.mem-card{aspect-ratio:1;border-radius:10px;border:2.5px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.12);display:flex;align-items:center;justify-content:center;font-size:22px;cursor:pointer;transition:all 0.2s;user-select:none;text-align:center;padding:4px;line-height:1.2;}
+.mem-card.flipped{background:#fff;border-color:#fff;}
+.mem-card.flipped.emoji-card{font-size:28px;}
+.mem-card.flipped.text-card{font-size:12px;font-weight:800;color:var(--text);}
+.mem-card.matched{background:#e8f8f0;border-color:var(--green-ok);}
+.mem-card.reading{border-color:var(--gold);box-shadow:0 0 0 3px rgba(245,200,66,0.4);}
+/* PHRASE */
+.hint-box{background:rgba(255,255,255,0.13);border-radius:var(--radius-sm);padding:12px 14px;width:100%;border-left:4px solid var(--gold);position:relative;}
+.hint-play-btn{position:absolute;top:10px;right:10px;background:rgba(255,255,255,0.2);border:none;border-radius:50%;width:32px;height:32px;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.15s;}
+.hint-play-btn:active{background:rgba(255,255,255,0.35);}
+.hint-play-btn.playing{animation:pulse-hint 0.7s ease-in-out infinite alternate;}
+@keyframes pulse-hint{0%{transform:scale(1);}100%{transform:scale(1.2);}}
+.hint-main{font-size:14px;font-weight:800;color:#fff;margin-bottom:3px;padding-right:36px;}
+.hint-sub{font-size:12px;color:rgba(255,255,255,0.7);padding-right:36px;}
+.hint-tap{font-size:11px;color:rgba(255,255,255,0.5);margin-top:4px;font-style:italic;}
+.slot-lbl{font-size:11px;font-weight:800;color:rgba(255,255,255,0.7);text-transform:uppercase;letter-spacing:1px;align-self:flex-start;}
+.slot-zone{width:100%;min-height:56px;background:rgba(0,0,0,0.2);border:2px dashed rgba(255,255,255,0.25);border-radius:var(--radius-sm);padding:8px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;}
+.slot-zone.filled{border-color:rgba(255,255,255,0.5);border-style:solid;}
+.slot-ph{font-size:13px;color:rgba(255,255,255,0.4);font-style:italic;}
+.pool-lbl{font-size:11px;font-weight:800;color:rgba(255,255,255,0.7);text-transform:uppercase;letter-spacing:1px;align-self:flex-start;}
+.pool-zone{width:100%;display:flex;flex-wrap:wrap;gap:7px;background:rgba(255,255,255,0.08);border-radius:var(--radius-sm);padding:10px;min-height:48px;}
+.chip{padding:8px 14px;border-radius:20px;font-size:14px;font-weight:800;cursor:pointer;border:2px solid rgba(255,255,255,0.35);background:rgba(255,255,255,0.15);color:#fff;transition:all 0.12s;user-select:none;}
+.chip:active{transform:scale(0.93);}
+.chip.in-slot{background:var(--gold);border-color:#d4a800;color:#2d1a00;}
+.chip.used{opacity:0.25;pointer-events:none;}
+.chip.sounding{box-shadow:0 0 0 3px rgba(255,255,255,0.6);}
+.phrase-btns{display:flex;gap:8px;width:100%;}
+.pbtn{flex:1;padding:12px;border:none;border-radius:var(--radius-sm);font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer;transition:transform 0.1s;}
+.pbtn:active{transform:scale(0.96);}
+.pbtn.clear{background:rgba(255,255,255,0.15);color:#fff;border:2px solid rgba(255,255,255,0.2);}
+.pbtn.check{background:var(--gold);color:#2d1a00;}
+.complete-banner{width:100%;background:#1a3d1a;border:2px solid var(--green-ok);border-radius:var(--radius-sm);padding:12px 16px;display:none;animation:popIn 0.3s ease;}
+.complete-banner.show{display:block;}
+.complete-txt{font-size:15px;font-weight:800;color:#7ee8a2;text-align:center;}
+.complete-play{display:block;margin:8px auto 0;background:var(--green-ok);color:#fff;border:none;border-radius:20px;padding:6px 18px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer;}
+/* FACTS */
+.fact-nav{display:flex;gap:8px;width:100%;}
+.fnav{flex:1;padding:12px;border:none;border-radius:var(--radius-sm);background:rgba(255,255,255,0.15);color:#fff;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer;border:2px solid rgba(255,255,255,0.2);}
+.fnav:active{background:rgba(255,255,255,0.25);}
+.fact-card{background:#fff;border-radius:var(--radius);padding:20px;width:100%;box-shadow:0 2px 12px rgba(0,0,0,0.12);position:relative;}
+.fact-emo{font-size:52px;text-align:center;display:block;margin-bottom:10px;}
+.fact-num{font-size:11px;font-weight:700;color:var(--ocean-light);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;}
+.fact-txt{font-size:16px;font-weight:600;color:var(--text);line-height:1.6;}
+.fact-audio-btn{position:absolute;top:14px;right:14px;background:#e8f4fd;border:none;border-radius:50%;width:36px;height:36px;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.fact-audio-btn.playing{animation:pulse-hint 0.7s ease-in-out infinite alternate;}
+.fact-dots{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;}
+.fdot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,0.25);transition:background 0.2s;}
+.fdot.active{background:var(--gold);}
+</style>
+</head>
+<body>
+<div id="root">
+<div class="ocean-scene" id="ocean-bg"></div>
+
+<!-- MENU -->
+<div id="menu" class="screen active">
+  <div class="menu-dolphin">🐬</div>
+  <div class="menu-title">El Delfín<br>Chileno</div>
+  <div class="menu-subtitle">¡Aprende jugando, Joseph!</div>
+  <div class="menu-grid">
+    <button class="mbtn quiz" onclick="startQuiz()"><span class="mbtn-icon">🎯</span><span class="mbtn-txt"><span class="mbtn-label">Preguntas</span><span class="mbtn-sub">8 preguntas — gana puntos</span></span></button>
+    <button class="mbtn memory" onclick="startMemory()"><span class="mbtn-icon">🧩</span><span class="mbtn-txt"><span class="mbtn-label">Memoria</span><span class="mbtn-sub">Encuentra las 6 parejas</span></span></button>
+    <button class="mbtn phrase" onclick="startPhrase()"><span class="mbtn-icon">📝</span><span class="mbtn-txt"><span class="mbtn-label">Arma la oración</span><span class="mbtn-sub">Ordena las palabras</span></span></button>
+    <button class="mbtn facts" onclick="startFacts()"><span class="mbtn-icon">⭐</span><span class="mbtn-txt"><span class="mbtn-label">Datos curiosos</span><span class="mbtn-sub">10 datos del delfín chileno</span></span></button>
+  </div>
+</div>
+
+<!-- QUIZ -->
+<div id="quiz" class="screen">
+  <div class="topbar">
+    <button class="back-btn" onclick="goMenu()">← Menú</button>
+    <div class="score-pill">Puntos: <span id="q-score">0</span></div>
+  </div>
+  <div class="prog-wrap"><div class="prog-fill" id="q-prog" style="width:0%"></div></div>
+  <div class="card">
+    <button class="card-replay" id="q-replay" onclick="replayQuestion()" title="Escuchar de nuevo">🔊</button>
+    <span class="card-emoji" id="q-emoji"></span>
+    <div class="card-label" id="q-num">Pregunta 1 de 8</div>
+    <div class="card-title" id="q-text"></div>
+  </div>
+  <div class="reading-bar"><div class="reading-fill" id="q-reading-fill"></div></div>
+  <div class="opts" id="q-opts"></div>
+  <div class="feedback" id="q-fb"></div>
+  <button class="next-btn" id="q-next" onclick="nextQuestion()">Siguiente →</button>
+</div>
+
+<div id="quiz-result" class="screen">
+  <div class="result-wrap">
+    <div class="result-big" id="r-emoji">🏆</div><div class="result-stars" id="r-stars">⭐⭐⭐</div>
+    <div class="result-title" id="r-title">¡Eres un experto!</div>
+    <div class="result-score" id="r-score">80 pts</div><div class="result-sub" id="r-sub"></div>
+  </div>
+  <div class="action-row">
+    <button class="action-btn primary" onclick="startQuiz()">Jugar de nuevo</button>
+    <button class="action-btn secondary" onclick="goMenu()">Menú</button>
+  </div>
+</div>
+
+<!-- MEMORY -->
+<div id="memory" class="screen">
+  <div class="topbar">
+    <button class="back-btn" onclick="goMenu()">← Menú</button>
+    <div class="score-pill">Parejas: <span id="m-score">0</span>/6</div>
+  </div>
+  <div class="prog-wrap"><div class="prog-fill" id="m-prog" style="width:0%;background:#27ae60"></div></div>
+  <div class="mem-grid" id="mem-grid"></div>
+  <div class="feedback" id="m-fb"></div>
+</div>
+
+<div id="mem-result" class="screen">
+  <div class="result-wrap">
+    <div class="result-big">🎉</div><div class="result-stars">⭐⭐⭐</div>
+    <div class="result-title">¡Encontraste todas las parejas!</div>
+    <div class="result-sub" id="m-moves-txt"></div>
+  </div>
+  <div class="action-row">
+    <button class="action-btn primary" onclick="startMemory()">Jugar de nuevo</button>
+    <button class="action-btn secondary" onclick="goMenu()">Menú</button>
+  </div>
+</div>
+
+<!-- PHRASE -->
+<div id="phrase" class="screen">
+  <div class="topbar">
+    <button class="back-btn" onclick="goMenu()">← Menú</button>
+    <div class="score-pill" id="p-counter">1 / 5</div>
+  </div>
+  <div class="prog-wrap"><div class="prog-fill" id="p-prog" style="width:0%;background:#6c47d4"></div></div>
+  <div class="card"><span class="card-emoji" id="p-emoji"></span><div class="card-label">Oración <span id="p-num">1</span> de 5</div></div>
+  <div class="hint-box">
+    <button class="hint-play-btn" id="hint-play-btn" onclick="replayHint()" title="Escuchar pista">🔊</button>
+    <div class="hint-main" id="p-hint-main"></div>
+    <div class="hint-sub" id="p-hint-sub"></div>
+    <div class="hint-tap">Toca 🔊 para escuchar la pista de nuevo</div>
+  </div>
+  <div class="slot-lbl">Tu respuesta:</div>
+  <div class="slot-zone" id="p-slot"></div>
+  <div class="pool-lbl">Toca cada palabra para escucharla y ordenarla:</div>
+  <div class="pool-zone" id="p-pool"></div>
+  <div class="phrase-btns">
+    <button class="pbtn clear" onclick="clearPhrase()">Borrar todo</button>
+    <button class="pbtn check" onclick="checkPhrase()">Verificar ✓</button>
+  </div>
+  <div class="feedback" id="p-fb"></div>
+  <div class="complete-banner" id="p-complete-banner">
+    <div class="complete-txt" id="p-complete-txt"></div>
+    <button class="complete-play" onclick="playComplete()">🔊 Escuchar oración completa</button>
+  </div>
+  <button class="next-btn" id="p-next" onclick="nextPhrase()" style="background:#6c47d4;">Siguiente oración →</button>
+</div>
+
+<div id="phrase-result" class="screen">
+  <div class="result-wrap">
+    <div class="result-big">📝</div><div class="result-stars">⭐⭐⭐</div>
+    <div class="result-title">¡Completaste todas las oraciones!</div>
+    <div class="result-sub">¡Eres un experto del delfín chileno, Joseph!</div>
+  </div>
+  <div class="action-row">
+    <button class="action-btn primary" onclick="startPhrase()">Jugar de nuevo</button>
+    <button class="action-btn secondary" onclick="goMenu()">Menú</button>
+  </div>
+</div>
+
+<!-- FACTS -->
+<div id="facts" class="screen">
+  <div class="topbar">
+    <button class="back-btn" onclick="goMenu()">← Menú</button>
+    <div class="score-pill" id="f-counter">1 / 10</div>
+  </div>
+  <div class="fact-dots" id="f-dots"></div>
+  <div class="fact-card">
+    <button class="fact-audio-btn" id="f-audio-btn" onclick="replayFact()">🔊</button>
+    <span class="fact-emo" id="f-emo"></span>
+    <div class="fact-num" id="f-num"></div>
+    <div class="fact-txt" id="f-txt"></div>
+  </div>
+  <div class="fact-nav">
+    <button class="fnav" onclick="prevFact()">← Anterior</button>
+    <button class="fnav" onclick="nextFact()">Siguiente →</button>
+  </div>
+  <button class="next-btn" style="display:block;background:#e8590c;" onclick="goMenu()">Volver al menú 🏠</button>
+</div>
+
+<script>
+// ══════════════════════════════════════════
+// SISTEMA DE AUDIO CON PAUSAS CONTROLADAS
+// ══════════════════════════════════════════
+const AUDIO_BASE='audios/';
+const AUDIO_EXTS=['.mp3','.webm','.ogg'];
+const audioCache={};
+let currentAudio=null;
+let audioQueue=[];       // cola de {id, delay} pendientes
+let queueRunning=false;
+
+function loadAudio(id){
+  if(audioCache[id]) return Promise.resolve(audioCache[id]);
+  return new Promise(resolve=>{
+    let tried=0;
+    function tryNext(){
+      if(tried>=AUDIO_EXTS.length){resolve(null);return;}
+      const ext=AUDIO_EXTS[tried++];
+      const a=new Audio(AUDIO_BASE+id+ext);
+      a.oncanplaythrough=()=>{audioCache[id]=a;resolve(a);};
+      a.onerror=tryNext;
+      a.load();
+    }
+    tryNext();
+  });
+}
+
+// Detiene todo lo que esté sonando
+function stopAll(){
+  if(currentAudio){currentAudio.pause();currentAudio.currentTime=0;currentAudio=null;}
+  audioQueue=[];queueRunning=false;
+}
+
+// Reproduce un audio simple. Retorna promesa que resuelve cuando termina (o falla).
+function playOne(id){
+  return new Promise(resolve=>{
+    stopAll();
+    loadAudio(id).then(a=>{
+      if(!a){resolve();return;}
+      currentAudio=a;
+      a.onended=()=>{currentAudio=null;resolve();};
+      a.onerror=resolve;
+      a.play().catch(resolve);
+    });
+  });
+}
+
+// Reproduce una secuencia: [{id, delay}] donde delay es pausa ANTES del audio.
+// Retorna promesa que resuelve al terminar toda la secuencia.
+function playSequence(items, onEachStart){
+  stopAll();
+  return new Promise(resolve=>{
+    let idx=0;
+    queueRunning=true;
+    function next(){
+      if(!queueRunning||idx>=items.length){queueRunning=false;resolve();return;}
+      const item=items[idx++];
+      const delay=item.delay||0;
+      setTimeout(()=>{
+        if(!queueRunning){resolve();return;}
+        if(onEachStart) onEachStart(item, idx-1);
+        loadAudio(item.id).then(a=>{
+          if(!a){next();return;}
+          currentAudio=a;
+          a.onended=()=>{currentAudio=null;next();};
+          a.onerror=next;
+          a.play().catch(next);
+        });
+      }, delay);
+    }
+    next();
+  });
+}
+
+// delay helper
+const wait=(ms)=>new Promise(r=>setTimeout(r,ms));
+
+// ok/fail pools
+const okAudios=['ok_01','ok_02','ok_03','ok_04','ok_05','ok_06','ok_07','ok_08','ok_09','ok_10','ok_11','ok_12','ok_13','ok_14','ok_15','ok_16'];
+const failAudios=['fail_01','fail_02','fail_03','fail_04','fail_05','fail_06','fail_07','fail_08'];
+let okIdx=0,failIdx=0;
+function playOk(){return playOne(okAudios[okIdx++%okAudios.length]);}
+function playFail(){return playOne(failAudios[failIdx++%failAudios.length]);}
+
+function show(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');}
+function goMenu(){stopAll();show('menu');}
+
+// bubbles
+(function(){const bg=document.getElementById('ocean-bg');for(let i=0;i<12;i++){const b=document.createElement('div');b.className='bubble';const sz=Math.random()*30+10;b.style.cssText=`width:${sz}px;height:${sz}px;left:${Math.random()*100}%;bottom:${Math.random()*20}%;animation-duration:${Math.random()*8+6}s;animation-delay:${Math.random()*8}s;`;bg.appendChild(b);}})();
+
+// ══════════════════════════
+// QUIZ
+// ══════════════════════════
+const questions=[
+  {num:'01',emoji:'🐬',text:'¿Cómo se llama también al delfín chileno?',opts:['Tonina','Ballena azul','Tiburón','Foca'],ans:0},
+  {num:'02',emoji:'🎨',text:'¿De qué colores es el delfín chileno?',opts:['Rojo y amarillo','Gris, negro y blanco','Azul y verde','Café y naranja'],ans:1},
+  {num:'03',emoji:'🍽️',text:'¿Qué come el delfín chileno?',opts:['Algas y plantas','Peces, calamares y camarones','Solo plancton','Medusas'],ans:1},
+  {num:'04',emoji:'🗺️',text:'¿Dónde vive el delfín chileno?',opts:['En el río Amazonas','En el mar Mediterráneo','En las costas de Chile','En el Polo Norte'],ans:2},
+  {num:'05',emoji:'💧',text:'¿Qué tipo de agua prefiere el delfín chileno?',opts:['Agua caliente tropical','Agua dulce de ríos','Aguas frías','Agua salada tibia'],ans:2},
+  {num:'06',emoji:'👥',text:'¿Cómo vive el delfín chileno?',opts:['Solo, sin amigos','En grupos con otros delfines','Con ballenas','Siempre de a dos'],ans:1},
+  {num:'07',emoji:'🔊',text:'¿Cómo se comunica el delfín chileno?',opts:['Con silbidos y clics','Con mugidos','Con ladridos','No se comunica'],ans:0},
+  {num:'08',emoji:'🫁',text:'¿Cómo respira el delfín chileno?',opts:['Con branquias bajo el agua','Sale a la superficie a respirar aire','Absorbe oxígeno del agua','No necesita respirar'],ans:1},
+];
+const optLetters=['A','B','C','D'];
+
+let qIdx=0,qScore=0,qAnswered=false,qReading=false;
+
+function startQuiz(){
+  stopAll();qIdx=0;qScore=0;qAnswered=false;
+  document.getElementById('q-score').textContent=0;
+  show('quiz');
+  // intro → pausa 700ms → primera pregunta
+  playSequence([
+    {id:'quiz_start_0'+(Math.random()<0.5?'1':'2'), delay:0},
+  ]).then(()=>wait(700)).then(()=>loadQ());
+}
+
+function loadQ(){
+  if(qIdx>=questions.length){showQResult();return;}
+  const q=questions[qIdx];
+  qAnswered=false;qReading=true;
+  document.getElementById('q-num').textContent=`Pregunta ${qIdx+1} de ${questions.length}`;
+  document.getElementById('q-emoji').textContent=q.emoji;
+  document.getElementById('q-text').textContent=q.text;
+  document.getElementById('q-prog').style.width=(qIdx/questions.length*100)+'%';
+  document.getElementById('q-fb').style.display='none';
+  document.getElementById('q-next').style.display='none';
+  document.getElementById('q-replay').classList.remove('spinning');
+  // deshabilitar opciones mientras lee
+  renderOpts(q, true);
+  // Leer: pregunta → pausa 400ms → opción A → 350ms → B → 350ms → C → 350ms → D
+  const seq=[
+    {id:`quiz_q_${q.num}`, delay:0},
+    {id:`quiz_q${q.num}_opt_a`, delay:400},
+    {id:`quiz_q${q.num}_opt_b`, delay:350},
+    {id:`quiz_q${q.num}_opt_c`, delay:350},
+    {id:`quiz_q${q.num}_opt_d`, delay:350},
+  ];
+  playSequence(seq, (item, i)=>{
+    // highlight la opción que se está leyendo (índices 1–4 = opciones a–d)
+    document.querySelectorAll('.opt').forEach(o=>o.classList.remove('reading'));
+    if(i>=1 && i<=4){
+      const opts=document.querySelectorAll('.opt');
+      if(opts[i-1]) opts[i-1].classList.add('reading');
+    }
+  }).then(()=>{
+    // termina de leer → habilitar opciones
+    document.querySelectorAll('.opt').forEach(o=>o.classList.remove('reading'));
+    qReading=false;
+    renderOpts(q, false);
+  });
+}
+
+function renderOpts(q, disabled){
+  const opts=document.getElementById('q-opts');opts.innerHTML='';
+  q.opts.forEach((o,i)=>{
+    const b=document.createElement('button');
+    b.className='opt';
+    b.disabled=disabled;
+    b.innerHTML=`<span class="opt-letter">${optLetters[i]}</span>${o}`;
+    b.onclick=()=>answerQ(i,b,q);
+    opts.appendChild(b);
+  });
+}
+
+function replayQuestion(){
+  if(qIdx>=questions.length) return;
+  const q=questions[qIdx];
+  qAnswered=false;qReading=true;
+  renderOpts(q,true);
+  document.getElementById('q-replay').classList.add('spinning');
+  document.getElementById('q-fb').style.display='none';
+  document.getElementById('q-next').style.display='none';
+  const seq=[
+    {id:`quiz_q_${q.num}`, delay:0},
+    {id:`quiz_q${q.num}_opt_a`, delay:400},
+    {id:`quiz_q${q.num}_opt_b`, delay:350},
+    {id:`quiz_q${q.num}_opt_c`, delay:350},
+    {id:`quiz_q${q.num}_opt_d`, delay:350},
+  ];
+  playSequence(seq, (item,i)=>{
+    document.querySelectorAll('.opt').forEach(o=>o.classList.remove('reading'));
+    if(i>=1&&i<=4){const els=document.querySelectorAll('.opt');if(els[i-1])els[i-1].classList.add('reading');}
+  }).then(()=>{
+    document.querySelectorAll('.opt').forEach(o=>o.classList.remove('reading'));
+    qReading=false;document.getElementById('q-replay').classList.remove('spinning');
+    renderOpts(q,false);
+  });
+}
+
+function answerQ(i,btn,q){
+  if(qAnswered||qReading) return;
+  qAnswered=true;stopAll();
+  const fb=document.getElementById('q-fb');
+  document.querySelectorAll('.opt').forEach((b,idx)=>{b.style.pointerEvents='none';b.classList.remove('reading');if(idx===q.ans)b.classList.add('correct');});
+  if(i===q.ans){
+    qScore+=10;document.getElementById('q-score').textContent=qScore;btn.classList.add('correct');
+    const msgs=['✅ ¡Muy bien, Joseph!','✅ ¡Correcto, Tuti!','✅ ¡Excelente, Joseph!','✅ ¡Genial, Tuti!'];
+    fb.className='feedback ok';fb.textContent=msgs[Math.floor(Math.random()*msgs.length)];fb.style.display='block';
+    playOk().then(()=>wait(500)).then(()=>{
+      if(qIdx<questions.length-1) playOne('quiz_next_0'+(Math.random()<0.5?'1':'2'));
+    });
+  }else{
+    btn.classList.add('wrong');
+    fb.className='feedback err';const msgs=['❌ ¡Casi, Joseph! Era: ','❌ No era esa, Tuti. Era: '];
+    fb.textContent=msgs[Math.floor(Math.random()*msgs.length)]+q.opts[q.ans];fb.style.display='block';
+    playFail();
+  }
+  document.getElementById('q-next').style.display='block';
+}
+
+function nextQuestion(){stopAll();qIdx++;wait(400).then(()=>loadQ());}
+
+function showQResult(){
+  const pct=qScore/(questions.length*10);let emoji,title,stars,sub,aid;
+  if(pct>=0.9){emoji='🏆';title='¡Eres un experto en delfines!';stars='⭐⭐⭐';sub='¡Puntaje increíble, Joseph!';aid='result_high_0'+(Math.random()<0.5?'1':'2');}
+  else if(pct>=0.6){emoji='😊';title='¡Muy bien, Tuti!';stars='⭐⭐';sub='¡Sigues aprendiendo!';aid='result_mid_0'+(Math.random()<0.5?'1':'2');}
+  else{emoji='💪';title='¡Sigue practicando, Joseph!';stars='⭐';sub='¡La próxima lo harás mejor!';aid='result_low_0'+(Math.random()<0.5?'1':'2');}
+  document.getElementById('r-emoji').textContent=emoji;document.getElementById('r-title').textContent=title;
+  document.getElementById('r-stars').textContent=stars;document.getElementById('r-score').textContent=qScore+' pts';
+  document.getElementById('r-sub').textContent=sub;show('quiz-result');
+  wait(300).then(()=>playOne(aid));
+}
+
+// ══════════════════════════
+// MEMORY
+// ══════════════════════════
+// Cada tarjeta tiene: tipo ('emoji'|'text'), valor visual, y audioId
+const memPairs=[
+  {pair:0, emoji:{val:'🐬',audioId:'mem_card_dolphin',cls:'emoji-card'}, text:{val:'Tonina',audioId:'mem_card_tonina',cls:'text-card'}},
+  {pair:1, emoji:{val:'🐟',audioId:'mem_card_fish',cls:'emoji-card'},    text:{val:'Come peces',audioId:'mem_card_eatfish',cls:'text-card'}},
+  {pair:2, emoji:{val:'❄️',audioId:'mem_card_cold',cls:'emoji-card'},    text:{val:'Agua fría',audioId:'mem_card_coldtxt',cls:'text-card'}},
+  {pair:3, emoji:{val:'🗺️',audioId:'mem_card_map',cls:'emoji-card'},    text:{val:'Costa de Chile',audioId:'mem_card_maptxt',cls:'text-card'}},
+  {pair:4, emoji:{val:'🔊',audioId:'mem_card_sound',cls:'emoji-card'},   text:{val:'Silbidos',audioId:'mem_card_soundtxt',cls:'text-card'}},
+  {pair:5, emoji:{val:'👥',audioId:'mem_card_group',cls:'emoji-card'},   text:{val:'En grupos',audioId:'mem_card_grouptxt',cls:'text-card'}},
+];
+
+let mMatched=[],mMoves=0,mFirst=null,mLocked=false;
+
+function startMemory(){
+  stopAll();mMatched=[];mMoves=0;mFirst=null;mLocked=false;
+  document.getElementById('m-score').textContent=0;document.getElementById('m-fb').style.display='none';document.getElementById('m-prog').style.width='0%';
+  // Armar 12 cartas barajadas
+  const cards=[];
+  memPairs.forEach(p=>{
+    cards.push({pair:p.pair,...p.emoji});
+    cards.push({pair:p.pair,...p.text});
+  });
+  cards.sort(()=>Math.random()-0.5);
+  const grid=document.getElementById('mem-grid');grid.innerHTML='';
+  cards.forEach((c,i)=>{
+    const d=document.createElement('div');d.className='mem-card';d.dataset.idx=i;d.textContent='❓';
+    d.onclick=()=>flipCard(d,c);grid.appendChild(d);
+  });
+  show('memory');
+  // intro → pausa 600ms → listo para jugar
+  playOne('mem_start_0'+(Math.random()<0.5?'1':'2')).then(()=>wait(600));
+}
+
+function flipCard(el,c){
+  if(mLocked||el.classList.contains('matched')||el.classList.contains('flipped')) return;
+  // Voltear y reproducir audio de la tarjeta
+  el.textContent=c.val;el.classList.add('flipped',c.cls);
+  el.classList.add('reading');
+  playOne(c.audioId).then(()=>{
+    el.classList.remove('reading');
+    if(!mFirst){mFirst={el,c};return;}
+    // Segunda tarjeta volteada
+    mLocked=true;mMoves++;
+    const fb=document.getElementById('m-fb');
+    if(mFirst.c.pair===c.pair){
+      // Pareja correcta
+      el.classList.add('matched');mFirst.el.classList.add('matched');
+      el.classList.remove('flipped');mFirst.el.classList.remove('flipped');
+      mMatched.push(c.pair);mFirst=null;mLocked=false;
+      const found=mMatched.length;
+      document.getElementById('m-score').textContent=found;
+      document.getElementById('m-prog').style.width=(found/6*100)+'%';
+      fb.className='feedback ok';fb.textContent='✅ ¡Pareja encontrada!';fb.style.display='block';
+      wait(300).then(()=>playOne(['mem_match_01','mem_match_02','mem_match_03'][Math.floor(Math.random()*3)]));
+      if(found===6){setTimeout(()=>{
+        document.getElementById('m-moves-txt').textContent='¡Lo lograste en '+mMoves+' intentos!';
+        show('mem-result');
+        wait(400).then(()=>playOne('mem_win_0'+(Math.random()<0.5?'1':'2')));
+      },800);}
+    }else{
+      // Pareja incorrecta → mostrar un momento y voltear de vuelta
+      fb.className='feedback err';fb.textContent='❌ ¡Esas no hacen pareja!';fb.style.display='block';
+      wait(300).then(()=>playFail()).then(()=>wait(300)).then(()=>{
+        el.textContent='❓';el.classList.remove('flipped',c.cls);
+        mFirst.el.textContent='❓';mFirst.el.classList.remove('flipped',mFirst.c.cls);
+        mFirst=null;mLocked=false;
+      });
+    }
+  });
+}
+
+// ══════════════════════════
+// PHRASE
+// ══════════════════════════
+const phrases=[
+  {num:'01',emoji:'🐬',hintMain:'Completa: El delfín chileno se llama ___ .',hintSub:'¿Tiene un apodo especial, cuál es?',fullSentence:'El delfín chileno se llama Tonina.',words:['El','delfín','chileno','se','llama','Tonina'],answer:['El','delfín','chileno','se','llama','Tonina']},
+  {num:'02',emoji:'🗺️',hintMain:'Completa: El delfín vive en las ___ de Chile.',hintSub:'¿Dónde exactamente? Piensa en el borde del mar.',fullSentence:'El delfín vive en las costas de Chile.',words:['El','delfín','vive','en','las','costas','de','Chile'],answer:['El','delfín','vive','en','las','costas','de','Chile']},
+  {num:'03',emoji:'🍽️',hintMain:'Completa: El delfín come ___ , ___ y ___ .',hintSub:'Come tres cosas del mar, ¿las recuerdas?',fullSentence:'El delfín come peces, calamares y camarones.',words:['El','delfín','come','peces','calamares','y','camarones'],answer:['El','delfín','come','peces','calamares','y','camarones']},
+  {num:'04',emoji:'🔊',hintMain:'Completa: El delfín se comunica con ___ y ___ .',hintSub:'¿Cómo habla el delfín con sus amigos?',fullSentence:'El delfín se comunica con silbidos y clics.',words:['El','delfín','se','comunica','con','silbidos','y','clics'],answer:['El','delfín','se','comunica','con','silbidos','y','clics']},
+  {num:'05',emoji:'❄️',hintMain:'Completa: El delfín prefiere las aguas ___ .',hintSub:'¿Calientes o frías? Vive en el sur de Chile.',fullSentence:'El delfín prefiere las aguas frías.',words:['El','delfín','prefiere','las','aguas','frías'],answer:['El','delfín','prefiere','las','aguas','frías']},
+];
+let pIdx=0,pSlot=[],pUsed=[],pAnswered=false,currentPhrase=null;
+
+function startPhrase(){
+  stopAll();pIdx=0;show('phrase');
+  playOne('phrase_start_0'+(Math.random()<0.5?'1':'2')).then(()=>wait(600)).then(()=>loadPhrase());
+}
+
+function loadPhrase(){
+  if(pIdx>=phrases.length){show('phrase-result');wait(300).then(()=>playOne('phrase_win_0'+(Math.random()<0.5?'1':'2')));return;}
+  const p=phrases[pIdx];currentPhrase=p;
+  pSlot=[];pUsed=[];pAnswered=false;
+  document.getElementById('p-num').textContent=pIdx+1;document.getElementById('p-counter').textContent=(pIdx+1)+' / '+phrases.length;
+  document.getElementById('p-emoji').textContent=p.emoji;document.getElementById('p-hint-main').textContent=p.hintMain;document.getElementById('p-hint-sub').textContent=p.hintSub;
+  document.getElementById('p-prog').style.width=(pIdx/phrases.length*100)+'%';
+  document.getElementById('p-fb').style.display='none';document.getElementById('p-next').style.display='none';
+  document.getElementById('p-complete-banner').classList.remove('show');document.getElementById('hint-play-btn').classList.remove('playing');
+  renderPSlot();renderPool(p);
+  setTimeout(()=>playHint(p),300);
+}
+
+function playHint(p){
+  const btn=document.getElementById('hint-play-btn');btn.classList.add('playing');
+  playOne('phrase_hint_'+p.num).then(()=>btn.classList.remove('playing'));
+}
+function replayHint(){if(currentPhrase)playHint(currentPhrase);}
+
+function renderPSlot(){
+  const slot=document.getElementById('p-slot');slot.innerHTML='';
+  if(!pSlot.length){slot.classList.remove('filled');slot.innerHTML='<span class="slot-ph">Toca las palabras de abajo en orden...</span>';return;}
+  slot.classList.add('filled');
+  pSlot.forEach((w,i)=>{
+    const c=document.createElement('span');c.className='chip in-slot';c.textContent=w.word;
+    c.onclick=()=>{playWordAudio(currentPhrase.num,w.wordIdx+1);removeFromSlot(i,w.poolIdx);};
+    slot.appendChild(c);
+  });
+}
+
+function renderPool(p){
+  const pool=document.getElementById('p-pool');pool.innerHTML='';
+  const shuffled=p.words.map((w,i)=>({word:w,origIdx:i})).sort(()=>Math.random()-0.5);
+  shuffled.forEach((item,si)=>{
+    const c=document.createElement('span');c.className='chip';c.id='pc_'+si;c.textContent=item.word;
+    c.onclick=()=>addToSlot(item.word,si,item.origIdx,c);pool.appendChild(c);
+  });
+}
+
+function playWordAudio(phraseNum,wordPos){
+  const pad=wordPos<10?'0'+wordPos:''+wordPos;
+  playOne(`phrase_${phraseNum}_word_${pad}`);
+}
+
+function addToSlot(word,poolIdx,wordOrigIdx,el){
+  if(el.classList.contains('used')||pAnswered) return;
+  el.classList.add('used');
+  playWordAudio(currentPhrase.num,wordOrigIdx+1);
+  el.classList.add('sounding');setTimeout(()=>el.classList.remove('sounding'),600);
+  pSlot.push({word,poolIdx,wordIdx:wordOrigIdx});pUsed.push(poolIdx);renderPSlot();
+}
+
+function removeFromSlot(si,poolIdx){
+  if(pAnswered) return;
+  pSlot.splice(si,1);pUsed=pUsed.filter(i=>i!==poolIdx);
+  const el=document.getElementById('pc_'+poolIdx);if(el)el.classList.remove('used');renderPSlot();
+}
+
+function clearPhrase(){
+  if(pAnswered) return;
+  pSlot=[];pUsed=[];document.querySelectorAll('#p-pool .chip').forEach(c=>c.classList.remove('used'));renderPSlot();
+  document.getElementById('p-fb').style.display='none';document.getElementById('p-next').style.display='none';
+  document.getElementById('p-complete-banner').classList.remove('show');
+}
+
+function checkPhrase(){
+  if(pAnswered) return;
+  const p=phrases[pIdx];const fb=document.getElementById('p-fb');
+  if(!pSlot.length){fb.className='feedback err';fb.textContent='Primero coloca las palabras en orden.';fb.style.display='block';return;}
+  const built=pSlot.map(w=>w.word);
+  const correct=JSON.stringify(built)===JSON.stringify(p.answer);
+  fb.style.display='block';
+  if(correct){
+    pAnswered=true;fb.className='feedback ok';fb.textContent='✅ ¡Oración perfecta! Escucha cómo suena 👇';
+    document.getElementById('p-complete-txt').textContent=p.fullSentence;
+    document.getElementById('p-complete-banner').classList.add('show');
+    document.getElementById('p-next').style.display='block';
+    playOk().then(()=>wait(600)).then(()=>playComplete());
+  }else{
+    const nok=built.filter((w,i)=>w===p.answer[i]).length;
+    fb.className='feedback err';
+    fb.textContent=nok>=p.answer.length-1?'❌ ¡Casi, Tuti! Solo una palabra fuera de lugar.':'❌ ¡Ese orden no es correcto, Joseph! Borra e intenta de nuevo.';
+    playFail();
+  }
+}
+
+function playComplete(){playOne('phrase_complete_'+currentPhrase.num);}
+function nextPhrase(){stopAll();pIdx++;wait(400).then(()=>loadPhrase());}
+
+// ══════════════════════════
+// FACTS
+// ══════════════════════════
+const facts=[
+  {emoji:'🐬',text:'El delfín chileno también se llama Tonina. Es uno de los delfines más pequeños del mundo y vive solo en Chile.'},
+  {emoji:'🌊',text:'Vive en las costas de Chile, desde Arica hasta Tierra del Fuego. ¡Eso es todo lo largo de nuestro país!'},
+  {emoji:'❄️',text:'Le gustan las aguas frías. Por eso se siente muy cómodo en el sur de Chile, donde el mar es bien fresquito.'},
+  {emoji:'🎨',text:'Su cuerpo tiene tres colores: gris en la espalda, negro en los costados y blanco en la barriga.'},
+  {emoji:'🍽️',text:'Come peces, calamares y camarones. Sale a buscar su comida nadando muy rápido con sus amigos.'},
+  {emoji:'👥',text:'Vive en grupos de varios delfines. ¡Le gusta tener compañía y jugar con otros delfines!'},
+  {emoji:'🔊',text:'Se comunica con silbidos y clics. Es como si hablara un idioma secreto bajo el agua.'},
+  {emoji:'🫁',text:'Aunque vive en el mar, respira aire como nosotros. Sube a la superficie y toma aire por un hueco en la cabeza.'},
+  {emoji:'⏳',text:'Puede vivir más de 20 años. ¡Es más viejo que muchos papás!'},
+  {emoji:'💚',text:'Debemos cuidarlo: no botar basura al mar, no contaminar el agua. ¡El delfín chileno necesita nuestro mar limpio!'},
+];
+let fIdx=0;
+
+function startFacts(){stopAll();fIdx=0;buildDots();show('facts');playOne('facts_start_0'+(Math.random()<0.5?'1':'2')).then(()=>wait(500)).then(()=>loadFact());}
+function buildDots(){const d=document.getElementById('f-dots');d.innerHTML='';facts.forEach((_,i)=>{const dot=document.createElement('div');dot.className='fdot';dot.id='fdot_'+i;d.appendChild(dot);});}
+function loadFact(){
+  const f=facts[fIdx];
+  document.getElementById('f-emo').textContent=f.emoji;document.getElementById('f-num').textContent='Dato '+(fIdx+1)+' de '+facts.length;
+  document.getElementById('f-txt').textContent=f.text;document.getElementById('f-counter').textContent=(fIdx+1)+' / '+facts.length;
+  document.querySelectorAll('.fdot').forEach((d,i)=>d.classList.toggle('active',i===fIdx));
+  const btn=document.getElementById('f-audio-btn');btn.classList.remove('playing');
+  const pad=(fIdx+1)<10?'0'+(fIdx+1):''+(fIdx+1);
+  playOne('fact_'+pad).then(()=>btn&&btn.classList.remove('playing'));
+  btn.classList.add('playing');
+}
+function replayFact(){const pad=(fIdx+1)<10?'0'+(fIdx+1):''+(fIdx+1);const btn=document.getElementById('f-audio-btn');btn.classList.add('playing');playOne('fact_'+pad).then(()=>btn.classList.remove('playing'));}
+function nextFact(){if(fIdx<facts.length-1){stopAll();fIdx++;playOne('facts_next_0'+(Math.random()<0.5?'1':'2')).then(()=>wait(400)).then(()=>loadFact());}else{playOne('facts_end_0'+(Math.random()<0.5?'1':'2'));}}
+function prevFact(){if(fIdx>0){stopAll();fIdx--;loadFact();}}
+
+window.addEventListener('load',()=>setTimeout(()=>playOne('menu_0'+(1+Math.floor(Math.random()*4))),600));
+</script>
+</body>
+</html>
